@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Handover Intelligence — Alfa Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#F5F7F6;
+    --panel:#FFFFFF;
+    --ink:#152229;
+    --ink-soft:#4B5B63;
+    --line:#DBE2E0;
+    --teal:#0E7C86;
+    --teal-dark:#0A5C64;
+    --teal-tint:#E4F1F1;
+    --risk-high:#B3432D;
+    --risk-high-tint:#FBE9E5;
+    --risk-med:#B8791F;
+    --risk-med-tint:#FBF1DE;
+    --risk-low:#2E7D5B;
+    --risk-low-tint:#E4F3EC;
+    --mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);}
+  body{-webkit-font-smoothing:antialiased;}
+
+  a{color:inherit;}
+
+  .app{max-width:1180px;margin:0 auto;padding:28px 24px 60px;}
+
+  /* ---------- Header / manifest strip ---------- */
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:22px;
+    flex-wrap:wrap; gap:14px;
+  }
+  .brand{display:flex; flex-direction:column; gap:2px;}
+  .brand .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--teal-dark);
+  }
+  .brand h1{margin:0; font-size:23px; font-weight:700; letter-spacing:-0.01em;}
+  .brand .sub{font-size:12.5px; color:var(--ink-soft); font-family:var(--mono);}
+  .top-meta{
+    font-family:var(--mono); font-size:12px; color:var(--ink-soft); text-align:right;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .top-meta .badge{
+    display:inline-block; padding:2px 8px; border-radius:2px;
+    background:var(--teal-tint); color:var(--teal-dark); font-weight:600; letter-spacing:.04em;
+  }
+
+  /* ---------- KPI strip ---------- */
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:26px;}
+  .kpi{
+    background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:14px 16px;
+    position:relative; overflow:hidden;
+  }
+  .kpi::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--teal);
+  }
+  .kpi .label{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.08em; font-family:var(--mono);}
+  .kpi .value{font-family:var(--mono); font-size:26px; font-weight:600; margin:6px 0 2px; letter-spacing:-0.02em;}
+  .kpi .delta{font-size:12px; color:var(--risk-low); font-weight:500;}
+  .kpi .delta.warn{color:var(--risk-med);}
+
+  /* ---------- Signature: manifest / chain-of-custody strip ---------- */
+  .manifest{
+    background:var(--panel); border:1px solid var(--line); border-radius:3px;
+    padding:20px 22px 16px; margin-bottom:26px;
+  }
+  .manifest h2{
+    font-size:13px; text-transform:uppercase; letter-spacing:.1em; font-family:var(--mono);
+    color:var(--ink-soft); margin:0 0 16px;
+  }
+  .track{position:relative; padding:0 4px;}
+  .track .rail{
+    position:absolute; left:0; right:0; top:15px; height:2px; background:var(--line);
+  }
+  .track .rail-fill{
+    position:absolute; left:0; top:15px; height:2px; background:var(--teal);
+    transition:width .4s ease;
+  }
+  .steps{display:flex; justify-content:space-between; position:relative;}
+  .step{display:flex; flex-direction:column; align-items:center; width:12.5%; text-align:center;}
+  .step .dot{
+    width:14px; height:14px; border-radius:50%; background:var(--panel);
+    border:2px solid var(--line); z-index:1; transition:.3s;
+  }
+  .step.done .dot{background:var(--teal); border-color:var(--teal);}
+  .step.current .dot{
+    background:var(--teal); border-color:var(--teal); box-shadow:0 0 0 5px var(--teal-tint);
+  }
+  .step .num{font-family:var(--mono); font-size:10px; color:var(--ink-soft); margin-top:8px;}
+  .step .name{font-size:11.5px; margin-top:2px; max-width:78px; line-height:1.25; color:var(--ink);}
+  .step .tag{
+    margin-top:6px; font-family:var(--mono); font-size:9.5px; letter-spacing:.03em;
+    padding:1px 5px; border-radius:2px; color:var(--teal-dark); background:var(--teal-tint);
+    visibility:hidden;
+  }
+  .step.tagged .tag{visibility:visible;}
+
+  /* ---------- Main grid ---------- */
+  .grid{display:grid; grid-template-columns:1.05fr 1fr; gap:18px; align-items:start;}
+  @media (max-width:860px){ .grid{grid-template-columns:1fr;} .kpis{grid-template-columns:repeat(2,1fr);} }
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:3px;}
+  .panel h2{
+    font-size:13px; text-transform:uppercase; letter-spacing:.1em; font-family:var(--mono);
+    color:var(--ink-soft); margin:0; padding:16px 18px; border-bottom:1px solid var(--line);
+  }
+
+  /* Queue list */
+  .queue-list{list-style:none; margin:0; padding:0;}
+  .queue-item{
+    display:flex; align-items:center; gap:12px; padding:13px 18px;
+    border-bottom:1px solid var(--line); cursor:pointer; transition:background .15s;
+  }
+  .queue-item:last-child{border-bottom:none;}
+  .queue-item:hover{background:#FAFBFA;}
+  .queue-item.active{background:var(--teal-tint);}
+  .risk-chip{
+    font-family:var(--mono); font-size:12px; font-weight:600; min-width:44px; text-align:center;
+    padding:3px 0; border-radius:2px;
+  }
+  .risk-chip.high{background:var(--risk-high-tint); color:var(--risk-high);}
+  .risk-chip.med{background:var(--risk-med-tint); color:var(--risk-med);}
+  .risk-chip.low{background:var(--risk-low-tint); color:var(--risk-low);}
+  .qi-main{flex:1; min-width:0;}
+  .qi-id{font-family:var(--mono); font-size:12.5px; font-weight:600;}
+  .qi-route{font-size:12px; color:var(--ink-soft); margin-top:1px;}
+  .qi-arrow{color:var(--ink-soft); font-size:14px;}
+
+  /* Detail panel */
+  .detail-body{padding:18px;}
+  .detail-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;}
+  .detail-id{font-family:var(--mono); font-size:14px; font-weight:600;}
+  .detail-route{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+  .score-badge{
+    font-family:var(--mono); font-size:20px; font-weight:700; padding:6px 12px; border-radius:3px;
+  }
+  .score-badge.high{background:var(--risk-high-tint); color:var(--risk-high);}
+  .score-badge.med{background:var(--risk-med-tint); color:var(--risk-med);}
+  .score-badge.low{background:var(--risk-low-tint); color:var(--risk-low);}
+
+  .shap-title{font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); font-family:var(--mono); margin:16px 0 10px;}
+  .shap-row{display:flex; align-items:center; gap:10px; margin-bottom:9px;}
+  .shap-label{font-size:12.5px; width:132px; flex-shrink:0; color:var(--ink);}
+  .shap-bar-track{flex:1; background:var(--bg); border-radius:2px; height:9px; overflow:hidden;}
+  .shap-bar-fill{height:100%; background:var(--teal); border-radius:2px; transition:width .5s ease;}
+  .shap-pct{font-family:var(--mono); font-size:12px; width:38px; text-align:right; color:var(--ink-soft);}
+
+  .actions{display:flex; gap:10px; margin-top:18px;}
+  .btn{
+    font-family:var(--sans); font-size:13px; font-weight:600; padding:9px 16px; border-radius:3px;
+    border:1px solid var(--line); background:var(--panel); cursor:pointer;
+  }
+  .btn.primary{background:var(--teal); color:#fff; border-color:var(--teal);}
+  .btn.primary:hover{background:var(--teal-dark);}
+  .btn.ghost:hover{background:var(--bg);}
+  .signoff-note{font-size:11.5px; color:var(--ink-soft); margin-top:10px; line-height:1.5;}
+
+  /* Heat map */
+  .heat-wrap{padding:16px 18px 20px;}
+  .heat-grid{display:grid; grid-template-columns:70px repeat(3,1fr); gap:4px; margin-top:10px;}
+  .heat-cell{
+    aspect-ratio:2/1; border-radius:2px; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10.5px; color:var(--ink); text-align:center; padding:4px;
+  }
+  .heat-axis{font-family:var(--mono); font-size:10.5px; color:var(--ink-soft); display:flex; align-items:center; justify-content:flex-end; padding-right:6px;}
+  .heat-col-label{font-family:var(--mono); font-size:10px; color:var(--ink-soft); text-align:center;}
+
+  footer.foot{
+    margin-top:28px; padding-top:14px; border-top:1px solid var(--line);
+    font-size:11.5px; color:var(--ink-soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;
+  }
+  footer.foot span{font-family:var(--mono);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow">Alfa Lab &middot; Sample Handover Intelligence</div>
+      <h1>Handover Risk Queue</h1>
+      <div class="sub">Branch 014 — Giza Corridor &middot; Decision-support demo, human sign-off required</div>
+    </div>
+    <div class="top-meta">
+      <span class="badge">Shadow mode — demo data</span>
+      <span>Shift: 06:00–14:00 &middot; Supervisor: A. Rahman</span>
+    </div>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi">
+      <div class="label">TAT breach rate</div>
+      <div class="value" id="kpi-tat">—</div>
+      <div class="delta" id="kpi-tat-d"></div>
+    </div>
+    <div class="kpi">
+      <div class="label">Recollection rate</div>
+      <div class="value" id="kpi-recollect">—</div>
+      <div class="delta" id="kpi-recollect-d"></div>
+    </div>
+    <div class="kpi">
+      <div class="label">Flagged today</div>
+      <div class="value" id="kpi-flagged">—</div>
+      <div class="delta" id="kpi-flagged-d"></div>
+    </div>
+    <div class="kpi">
+      <div class="label">Patients notified &lt;1hr</div>
+      <div class="value" id="kpi-notify">—</div>
+      <div class="delta" id="kpi-notify-d"></div>
+    </div>
+  </section>
+
+  <section class="manifest">
+    <h2>Chain-of-custody manifest — selected shipment</h2>
+    <div class="track">
+      <div class="rail"></div>
+      <div class="rail-fill" id="rail-fill"></div>
+      <div class="steps" id="steps"></div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="panel">
+      <h2>Flagged shipments</h2>
+      <ul class="queue-list" id="queue"></ul>
+    </div>
+
+    <div class="panel">
+      <h2>Explainability — why this was flagged</h2>
+      <div class="detail-body" id="detail"></div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:18px;">
+    <h2>Branch risk heat map — likelihood × impact (demo)</h2>
+    <div class="heat-wrap">
+      <div class="heat-grid" id="heatgrid"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Sample Handover Intelligence Assistant — prototype interface</span>
+    <span>All data on this page is illustrative demo data, not real Alfa Lab records</span>
+  </footer>
+
+</div>
+
+<script>
+  // ---------- Demo data ----------
+  const WORKFLOW = ["Collection","Barcode","Packaging","Courier\npickup","Transport","Lab\nreceipt","Verify","Investigate"];
+
+  const shipments = [
+    {
+      id:"AL-20418", route:"Branch 014 → Core Lab", score:86, tier:"high", step:4,
+      factors:[
+        {label:"Temperature trend", pct:32},
+        {label:"Distance", pct:21},
+        {label:"Courier delay history", pct:18},
+        {label:"Traffic conditions", pct:15},
+        {label:"Packaging quality", pct:4},
+      ]
+    },
+    {
+      id:"AL-20422", route:"Branch 014 → Core Lab", score:63, tier:"med", step:2,
+      factors:[
+        {label:"Courier delay history", pct:29},
+        {label:"Traffic conditions", pct:24},
+        {label:"Distance", pct:20},
+        {label:"Temperature trend", pct:14},
+        {label:"Packaging quality", pct:6},
+      ]
+    },
+    {
+      id:"AL-20431", route:"Branch 014 → Core Lab", score:41, tier:"med", step:6,
+      factors:[
+        {label:"Distance", pct:26},
+        {label:"Temperature trend", pct:22},
+        {label:"Traffic conditions", pct:19},
+        {label:"Courier delay history", pct:17},
+        {label:"Packaging quality", pct:9},
+      ]
+    },
+    {
+      id:"AL-20437", route:"Branch 014 → Core Lab", score:18, tier:"low", step:7,
+      factors:[
+        {label:"Traffic conditions", pct:24},
+        {label:"Distance", pct:22},
+        {label:"Packaging quality", pct:20},
+        {label:"Temperature trend", pct:18},
+        {label:"Courier delay history", pct:8},
+      ]
+    },
+  ];
+
+  const heat = [
+    // row: [likelihood label, [impact-low, impact-med, impact-high]]
+    { row:"High",   cells:[ {t:"",c:"med"}, {t:"R1 R2",c:"med"}, {t:"",c:"high"} ] },
+    { row:"Medium", cells:[ {t:"",c:"low"}, {t:"R3 R4",c:"med"}, {t:"R6 R7",c:"high"} ] },
+    { row:"Low",    cells:[ {t:"R5",c:"low"}, {t:"",c:"low"}, {t:"",c:"med"} ] },
+  ];
+  const heatColor = { low:"var(--risk-low-tint)", med:"var(--risk-med-tint)", high:"var(--risk-high-tint)" };
+  const heatText  = { low:"var(--risk-low)", med:"var(--risk-med)", high:"var(--risk-high)" };
+
+  // ---------- Render: KPIs ----------
+  document.getElementById('kpi-tat').textContent = "6.4%";
+  document.getElementById('kpi-tat-d').textContent = "↓ target ≥60% reduction vs. baseline";
+  document.getElementById('kpi-recollect').textContent = "1.8%";
+  document.getElementById('kpi-recollect-d').textContent = "↓ target ≥50% reduction vs. baseline";
+  document.getElementById('kpi-flagged').textContent = shipments.length;
+  document.getElementById('kpi-flagged-d').textContent = shipments.filter(s=>s.tier==='high').length + " high-risk, pending review";
+  document.getElementById('kpi-flagged-d').classList.add('warn');
+  document.getElementById('kpi-notify').textContent = "97%";
+  document.getElementById('kpi-notify-d').textContent = "target ≥95% within 1 hour";
+
+  // ---------- Render: queue ----------
+  const queueEl = document.getElementById('queue');
+  function renderQueue(activeId){
+    queueEl.innerHTML = "";
+    shipments.forEach(s=>{
+      const li = document.createElement('li');
+      li.className = 'queue-item' + (s.id===activeId ? ' active' : '');
+      li.innerHTML = `
+        <div class="risk-chip ${s.tier}">${s.score}%</div>
+        <div class="qi-main">
+          <div class="qi-id">${s.id}</div>
+          <div class="qi-route">${s.route}</div>
+        </div>
+        <div class="qi-arrow">›</div>`;
+      li.addEventListener('click', ()=> selectShipment(s.id));
+      queueEl.appendChild(li);
+    });
+  }
+
+  // ---------- Render: manifest track ----------
+  const stepsEl = document.getElementById('steps');
+  function renderTrack(current){
+    stepsEl.innerHTML = "";
+    WORKFLOW.forEach((name, i)=>{
+      const n = i+1;
+      const div = document.createElement('div');
+      let cls = 'step';
+      if(n < current) cls += ' done';
+      if(n === current) cls += ' current';
+      const tag = (n===4) ? 'PREDICTIVE' : (n===6) ? 'AUTOMATION' : (n===8) ? 'GENERATIVE' : '';
+      if(tag) cls += ' tagged';
+      div.className = cls;
+      div.innerHTML = `
+        <div class="dot"></div>
+        <div class="num">STEP ${String(n).padStart(2,'0')}</div>
+        <div class="name">${name}</div>
+        <div class="tag">${tag}</div>`;
+      stepsEl.appendChild(div);
+    });
+    const pct = ((current-1)/(WORKFLOW.length-1))*100;
+    document.getElementById('rail-fill').style.width = pct + "%";
+  }
+
+  // ---------- Render: detail / SHAP ----------
+  const detailEl = document.getElementById('detail');
+  function renderDetail(s){
+    detailEl.innerHTML = `
+      <div class="detail-head">
+        <div>
+          <div class="detail-id">${s.id}</div>
+          <div class="detail-route">${s.route}</div>
+        </div>
+        <div class="score-badge ${s.tier}">${s.score}%</div>
+      </div>
+      <div class="shap-title">Contribution to risk score (SHAP)</div>
+      <div id="shap-rows"></div>
+      <div class="actions">
+        <button class="btn primary">Approve flag</button>
+        <button class="btn ghost">Override / dismiss</button>
+      </div>
+      <div class="signoff-note">Decision-support only — a supervisor must review and sign off before any action is taken on this shipment.</div>
+    `;
+    const rowsEl = detailEl.querySelector('#shap-rows');
+    s.factors.forEach(f=>{
+      const row = document.createElement('div');
+      row.className = 'shap-row';
+      row.innerHTML = `
+        <div class="shap-label">${f.label}</div>
+        <div class="shap-bar-track"><div class="shap-bar-fill" style="width:${f.pct*2.4}%"></div></div>
+        <div class="shap-pct">+${f.pct}%</div>`;
+      rowsEl.appendChild(row);
+    });
+    renderTrack(s.step);
+  }
+
+  function selectShipment(id){
+    const s = shipments.find(x=>x.id===id);
+    renderQueue(id);
+    renderDetail(s);
+  }
+
+  // ---------- Render: heat map ----------
+  const heatEl = document.getElementById('heatgrid');
+  function renderHeat(){
+    heatEl.innerHTML = "";
+    heatEl.appendChild(Object.assign(document.createElement('div'),{}));
+    ["Low impact","Medium impact","High impact"].forEach(l=>{
+      const d = document.createElement('div');
+      d.className = 'heat-col-label';
+      d.textContent = l;
+      heatEl.appendChild(d);
+    });
+    heat.forEach(r=>{
+      const axis = document.createElement('div');
+      axis.className = 'heat-axis';
+      axis.textContent = r.row;
+      heatEl.appendChild(axis);
+      r.cells.forEach(c=>{
+        const cell = document.createElement('div');
+        cell.className = 'heat-cell';
+        cell.style.background = heatColor[c.c];
+        cell.style.color = heatText[c.c];
+        cell.textContent = c.t;
+        heatEl.appendChild(cell);
+      });
+    });
+  }
+
+  // ---------- Init ----------
+  renderHeat();
+  selectShipment(shipments[0].id);
+</script>
+</body>
+</html>
