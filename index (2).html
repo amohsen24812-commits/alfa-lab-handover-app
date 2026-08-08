@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Handover Intelligence — Alfa Lab</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0E7C86">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Handover Intel">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#F5F7F6; --panel:#FFFFFF; --ink:#152229; --ink-soft:#4B5B63; --line:#DBE2E0;
+    --teal:#0E7C86; --teal-dark:#0A5C64; --teal-tint:#E4F1F1;
+    --risk-high:#B3432D; --risk-high-tint:#FBE9E5;
+    --risk-med:#B8791F; --risk-med-tint:#FBF1DE;
+    --risk-low:#2E7D5B; --risk-low-tint:#E4F3EC;
+    --mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --arfont:'Noto Kufi Arabic', 'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);}
+  body{-webkit-font-smoothing:antialiased;}
+  body[dir="rtl"]{font-family:var(--arfont);}
+  body[dir="rtl"] .mono, body[dir="rtl"] .kpi .value, body[dir="rtl"] .risk-chip,
+  body[dir="rtl"] .score-badge, body[dir="rtl"] .shap-pct, body[dir="rtl"] .qi-id,
+  body[dir="rtl"] .detail-id, body[dir="rtl"] table.recon-table td:first-child{
+    font-family:var(--mono); direction:ltr; unicode-bidi:isolate;
+  }
+  a{color:inherit;}
+  .app{max-width:1180px;margin:0 auto;padding:28px 24px 60px;}
+
+  header.top{display:flex; align-items:flex-end; justify-content:space-between; border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:18px; flex-wrap:wrap; gap:14px;}
+  body[dir="rtl"] header.top{align-items:flex-start;}
+  .brand{display:flex; flex-direction:column; gap:2px;}
+  .brand .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--teal-dark);}
+  body[dir="rtl"] .brand .eyebrow{font-family:var(--arfont); letter-spacing:0;}
+  .brand h1{margin:0; font-size:23px; font-weight:700; letter-spacing:-0.01em;}
+  .brand .sub{font-size:12.5px; color:var(--ink-soft); font-family:var(--mono);}
+  body[dir="rtl"] .brand .sub{font-family:var(--arfont);}
+  .top-meta{font-family:var(--mono); font-size:12px; color:var(--ink-soft); text-align:right; display:flex; flex-direction:column; gap:6px; align-items:flex-end;}
+  body[dir="rtl"] .top-meta{text-align:left; align-items:flex-start; font-family:var(--arfont);}
+  .top-meta .badge{display:inline-block; padding:2px 8px; border-radius:2px; background:var(--teal-tint); color:var(--teal-dark); font-weight:600; letter-spacing:.04em;}
+  .top-controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+  body[dir="rtl"] .top-controls{justify-content:flex-start;}
+  .lang-toggle{display:flex; border:1px solid var(--line); border-radius:3px; overflow:hidden;}
+  .lang-toggle button{
+    font-family:var(--mono); font-size:11px; padding:5px 10px; border:none; background:var(--panel);
+    color:var(--ink-soft); cursor:pointer; font-weight:600;
+  }
+  .lang-toggle button.active{background:var(--ink); color:#fff;}
+  #userNameInput{
+    font-family:var(--sans); font-size:12px; padding:5px 9px; border:1px solid var(--line); border-radius:3px;
+    background:var(--panel); color:var(--ink); width:170px;
+  }
+  body[dir="rtl"] #userNameInput{font-family:var(--arfont); text-align:right;}
+
+  .tabbar{display:flex; gap:6px; margin-bottom:22px; border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  .tab-btn{
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-transform:uppercase;
+    padding:10px 16px; border:none; background:none; color:var(--ink-soft); cursor:pointer;
+    border-bottom:2px solid transparent; margin-bottom:-1px; font-weight:600; position:relative;
+  }
+  body[dir="rtl"] .tab-btn{font-family:var(--arfont); letter-spacing:0;}
+  .tab-btn.active{color:var(--teal-dark); border-bottom-color:var(--teal);}
+  .tab-btn:hover{color:var(--teal-dark);}
+  .tab-btn .count-dot{
+    display:inline-block; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--risk-high);
+    color:#fff; font-size:9.5px; line-height:16px; text-align:center; margin-inline-start:5px; font-family:var(--mono);
+  }
+  .tabpanel{display:none;}
+  .tabpanel.active{display:block;}
+
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:26px;}
+  .kpi{background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:14px 16px; position:relative; overflow:hidden;}
+  .kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--teal);}
+  body[dir="rtl"] .kpi::before{left:auto; right:0;}
+  .kpi.alert::before{background:var(--risk-high);}
+  .kpi .label{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.08em; font-family:var(--mono);}
+  body[dir="rtl"] .kpi .label{font-family:var(--arfont); letter-spacing:0;}
+  .kpi .value{font-family:var(--mono); font-size:26px; font-weight:600; margin:6px 0 2px; letter-spacing:-0.02em;}
+  .kpi .delta{font-size:12px; color:var(--risk-low); font-weight:500;}
+  .kpi .delta.warn{color:var(--risk-med);}
+  .kpi .delta.bad{color:var(--risk-high);}
+
+  .manifest{background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:20px 22px 16px; margin-bottom:26px;}
+  .manifest h2{font-size:13px; text-transform:uppercase; letter-spacing:.1em; font-family:var(--mono); color:var(--ink-soft); margin:0 0 16px;}
+  body[dir="rtl"] .manifest h2{font-family:var(--arfont); letter-spacing:0;}
+  .track{position:relative; padding:0 4px;}
+  .track .rail{position:absolute; left:0; right:0; top:15px; height:2px; background:var(--line);}
+  .track .rail-fill{position:absolute; left:0; top:15px; height:2px; background:var(--teal); transition:width .4s ease;}
+  body[dir="rtl"] .track .rail-fill{left:auto; right:0;}
+  .steps{display:flex; justify-content:space-between; position:relative;}
+  .step{display:flex; flex-direction:column; align-items:center; width:12.5%; text-align:center;}
+  .step .dot{width:14px; height:14px; border-radius:50%; background:var(--panel); border:2px solid var(--line); z-index:1; transition:.3s;}
+  .step.done .dot{background:var(--teal); border-color:var(--teal);}
+  .step.current .dot{background:var(--teal); border-color:var(--teal); box-shadow:0 0 0 5px var(--teal-tint);}
+  .step .num{font-family:var(--mono); font-size:10px; color:var(--ink-soft); margin-top:8px;}
+  .step .name{font-size:11.5px; margin-top:2px; max-width:78px; line-height:1.25; color:var(--ink);}
+  body[dir="rtl"] .step .name{font-family:var(--arfont);}
+  .step .tag{margin-top:6px; font-family:var(--mono); font-size:9.5px; letter-spacing:.03em; padding:1px 5px; border-radius:2px; color:var(--teal-dark); background:var(--teal-tint); visibility:hidden;}
+  body[dir="rtl"] .step .tag{font-family:var(--arfont);}
+  .step.tagged .tag{visibility:visible;}
+
+  .grid{display:grid; grid-template-columns:1.05fr 1fr; gap:18px; align-items:start;}
+  @media (max-width:860px){ .grid{grid-template-columns:1fr;} .kpis{grid-template-columns:repeat(2,1fr);} .recon-grid{grid-template-columns:1fr !important;} .tour-grid{grid-template-columns:1fr !important;} }
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:3px;}
+  .panel h2{font-size:13px; text-transform:uppercase; letter-spacing:.1em; font-family:var(--mono); color:var(--ink-soft); margin:0; padding:16px 18px; border-bottom:1px solid var(--line);}
+  body[dir="rtl"] .panel h2{font-family:var(--arfont); letter-spacing:0;}
+
+  .queue-list{list-style:none; margin:0; padding:0;}
+  .queue-item{display:flex; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line); cursor:pointer; transition:background .15s;}
+  .queue-item:last-child{border-bottom:none;}
+  .queue-item:hover{background:#FAFBFA;}
+  .queue-item.active{background:var(--teal-tint);}
+  .risk-chip{font-family:var(--mono); font-size:12px; font-weight:600; min-width:44px; text-align:center; padding:3px 0; border-radius:2px;}
+  .risk-chip.high{background:var(--risk-high-tint); color:var(--risk-high);}
+  .risk-chip.med{background:var(--risk-med-tint); color:var(--risk-med);}
+  .risk-chip.low{background:var(--risk-low-tint); color:var(--risk-low);}
+  .qi-main{flex:1; min-width:0;}
+  .qi-id{font-family:var(--mono); font-size:12.5px; font-weight:600;}
+  .qi-route{font-size:12px; color:var(--ink-soft); margin-top:1px;}
+  body[dir="rtl"] .qi-route{font-family:var(--arfont);}
+  .qi-arrow{color:var(--ink-soft); font-size:14px;}
+  body[dir="rtl"] .qi-arrow{transform:scaleX(-1);}
+
+  .detail-body{padding:18px;}
+  .detail-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;}
+  .detail-id{font-family:var(--mono); font-size:14px; font-weight:600;}
+  .detail-route{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+  body[dir="rtl"] .detail-route{font-family:var(--arfont);}
+  .score-badge{font-family:var(--mono); font-size:20px; font-weight:700; padding:6px 12px; border-radius:3px;}
+  .score-badge.high{background:var(--risk-high-tint); color:var(--risk-high);}
+  .score-badge.med{background:var(--risk-med-tint); color:var(--risk-med);}
+  .score-badge.low{background:var(--risk-low-tint); color:var(--risk-low);}
+
+  .shap-title{font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); font-family:var(--mono); margin:16px 0 10px;}
+  body[dir="rtl"] .shap-title{font-family:var(--arfont); letter-spacing:0;}
+  .shap-row{display:flex; align-items:center; gap:10px; margin-bottom:9px;}
+  .shap-label{font-size:12.5px; width:132px; flex-shrink:0; color:var(--ink);}
+  body[dir="rtl"] .shap-label{font-family:var(--arfont); width:150px;}
+  .shap-bar-track{flex:1; background:var(--bg); border-radius:2px; height:9px; overflow:hidden;}
+  .shap-bar-fill{height:100%; background:var(--teal); border-radius:2px; transition:width .5s ease;}
+  .shap-pct{font-family:var(--mono); font-size:12px; width:38px; text-align:right; color:var(--ink-soft);}
+  body[dir="rtl"] .shap-pct{text-align:left;}
+
+  .actions{display:flex; gap:10px; margin-top:18px;}
+  .btn{font-family:var(--sans); font-size:13px; font-weight:600; padding:9px 16px; border-radius:3px; border:1px solid var(--line); background:var(--panel); cursor:pointer;}
+  body[dir="rtl"] .btn{font-family:var(--arfont);}
+  .btn.primary{background:var(--teal); color:#fff; border-color:var(--teal);}
+  .btn.primary:hover{background:var(--teal-dark);}
+  .btn.ghost:hover{background:var(--bg);}
+  .btn.small{padding:6px 11px; font-size:12px;}
+  .signoff-note{font-size:11.5px; color:var(--ink-soft); margin-top:10px; line-height:1.5;}
+  body[dir="rtl"] .signoff-note{font-family:var(--arfont);}
+
+  .heat-wrap{padding:16px 18px 20px;}
+  .heat-grid{display:grid; grid-template-columns:70px repeat(3,1fr); gap:4px; margin-top:10px;}
+  .heat-cell{aspect-ratio:2/1; border-radius:2px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10.5px; color:var(--ink); text-align:center; padding:4px;}
+  .heat-axis{font-family:var(--mono); font-size:10.5px; color:var(--ink-soft); display:flex; align-items:center; justify-content:flex-end; padding-right:6px;}
+  body[dir="rtl"] .heat-axis{font-family:var(--arfont); justify-content:flex-end; padding-right:6px; padding-left:0;}
+  .heat-col-label{font-family:var(--mono); font-size:10px; color:var(--ink-soft); text-align:center;}
+  body[dir="rtl"] .heat-col-label{font-family:var(--arfont);}
+
+  .recon-intro{font-size:13px; color:var(--ink-soft); line-height:1.6; margin-bottom:18px;}
+  body[dir="rtl"] .recon-intro{font-family:var(--arfont);}
+  .recon-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;}
+  .paste-box h3{font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-family:var(--mono); color:var(--ink-soft); margin:0 0 8px; display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  body[dir="rtl"] .paste-box h3{font-family:var(--arfont); letter-spacing:0;}
+  .paste-box textarea{width:100%; height:190px; resize:vertical; border:1px solid var(--line); border-radius:3px; padding:10px 12px; font-family:var(--mono); font-size:12.5px; color:var(--ink); background:var(--panel);}
+  .paste-box textarea:focus{outline:2px solid var(--teal); outline-offset:1px;}
+  .paste-hint{font-size:11px; color:var(--ink-soft); margin-top:6px; font-family:var(--mono);}
+  body[dir="rtl"] .paste-hint{font-family:var(--arfont);}
+
+  .recon-summary{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px;}
+
+  .recon-controls{display:flex; gap:8px; padding:14px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap; align-items:center;}
+  .filter-btn{font-family:var(--mono); font-size:11.5px; padding:5px 11px; border-radius:12px; border:1px solid var(--line); background:var(--panel); cursor:pointer; color:var(--ink-soft);}
+  body[dir="rtl"] .filter-btn{font-family:var(--arfont);}
+  .filter-btn.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .recon-live{margin-inline-start:auto; font-family:var(--mono); font-size:11px; color:var(--ink-soft); display:flex; align-items:center; gap:6px;}
+  body[dir="rtl"] .recon-live{font-family:var(--arfont);}
+  .live-dot{width:7px; height:7px; border-radius:50%; background:var(--risk-low); animation:pulse 1.6s infinite;}
+  @keyframes pulse{ 0%{opacity:1;} 50%{opacity:.35;} 100%{opacity:1;} }
+
+  table.recon-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.recon-table th{text-align:left; font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); padding:9px 18px; border-bottom:1px solid var(--line); background:#FAFBFA;}
+  body[dir="rtl"] table.recon-table th{text-align:right; font-family:var(--arfont); letter-spacing:0;}
+  table.recon-table td{padding:9px 18px; border-bottom:1px solid var(--line); vertical-align:top;}
+  table.recon-table tr:last-child td{border-bottom:none;}
+  .status-pill{font-family:var(--mono); font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; display:inline-block;}
+  body[dir="rtl"] .status-pill{font-family:var(--arfont);}
+  .status-pill.matched{background:var(--risk-low-tint); color:var(--risk-low);}
+  .status-pill.missing{background:var(--risk-high-tint); color:var(--risk-high);}
+  .status-pill.unexpected{background:var(--risk-med-tint); color:var(--risk-med);}
+  .status-pill.mismatch{background:var(--risk-med-tint); color:var(--risk-med);}
+  .empty-note{padding:24px 18px; text-align:center; color:var(--ink-soft); font-size:12.5px;}
+  body[dir="rtl"] .empty-note{font-family:var(--arfont);}
+  #rc-table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  table.recon-table{min-width:640px;}
+
+  /* ---------- Guided Tour ---------- */
+  .tour-hero{padding:20px 22px; border-bottom:1px solid var(--line);}
+  .tour-hero p{font-size:13px; color:var(--ink-soft); line-height:1.6; margin:0;}
+  body[dir="rtl"] .tour-hero p{font-family:var(--arfont);}
+  .tour-grid{display:grid; grid-template-columns:1fr 1fr; gap:0;}
+  .tour-col{padding:20px 22px;}
+  .tour-col:first-child{border-right:1px solid var(--line);}
+  body[dir="rtl"] .tour-col:first-child{border-right:none; border-left:1px solid var(--line);}
+  .tour-col h3{font-size:14px; margin:0 0 14px; display:flex; align-items:center; gap:8px;}
+  body[dir="rtl"] .tour-col h3{font-family:var(--arfont);}
+  .tour-step{display:flex; gap:12px; margin-bottom:16px; align-items:flex-start;}
+  .tour-num{
+    flex-shrink:0; width:24px; height:24px; border-radius:50%; background:var(--teal-tint); color:var(--teal-dark);
+    font-family:var(--mono); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;
+  }
+  .tour-step-body{font-size:12.5px; line-height:1.55; color:var(--ink);}
+  body[dir="rtl"] .tour-step-body{font-family:var(--arfont);}
+  .tour-step-body b{display:block; margin-bottom:2px; font-size:13px;}
+  .tour-jump{margin-top:18px;}
+
+  /* ---------- Activity Log ---------- */
+  .log-controls{display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--line); gap:10px; flex-wrap:wrap;}
+  .log-note{font-size:11.5px; color:var(--ink-soft); padding:12px 18px 0;}
+  body[dir="rtl"] .log-note{font-family:var(--arfont);}
+  .log-list{list-style:none; margin:0; padding:0; max-height:520px; overflow-y:auto;}
+  .log-item{display:flex; gap:12px; padding:11px 18px; border-bottom:1px solid var(--line); font-size:12.5px;}
+  .log-item:last-child{border-bottom:none;}
+  .log-time{font-family:var(--mono); color:var(--ink-soft); flex-shrink:0; width:82px;}
+  .log-user{font-weight:600; flex-shrink:0; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  body[dir="rtl"] .log-user{font-family:var(--arfont);}
+  .log-action{color:var(--ink); flex:1;}
+  body[dir="rtl"] .log-action{font-family:var(--arfont);}
+
+  footer.foot{margin-top:28px; padding-top:14px; border-top:1px solid var(--line); font-size:11.5px; color:var(--ink-soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;}
+  body[dir="rtl"] footer.foot{font-family:var(--arfont);}
+  footer.foot span.mono{font-family:var(--mono);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow" data-i18n="brand_eyebrow">ALFA LAB &middot; SAMPLE HANDOVER INTELLIGENCE</div>
+      <h1 data-i18n="brand_title">Handover Risk &amp; Custody Reconciliation</h1>
+      <div class="sub" data-i18n="brand_sub">Branch 014 — Giza Corridor &middot; Decision-support demo, human sign-off required</div>
+    </div>
+    <div class="top-meta">
+      <div class="top-controls">
+        <button id="installBtn" class="btn small primary" style="display:none;" data-i18n="install_btn">⭳ Install App</button>
+        <div class="lang-toggle">
+          <button id="langEn" class="active">EN</button>
+          <button id="langAr">AR</button>
+        </div>
+        <input type="text" id="userNameInput" data-i18n-ph="user_ph" placeholder="Your name (for activity log)">
+      </div>
+      <span class="badge" data-i18n="badge_shadow">Shadow mode — demo data</span>
+      <span data-i18n="shift_label">Shift: 06:00–14:00 &middot; Supervisor: A. Rahman</span>
+    </div>
+  </header>
+
+  <nav class="tabbar">
+    <button class="tab-btn active" data-tab="dashboard" data-i18n="tab_dashboard">Risk Dashboard</button>
+    <button class="tab-btn" data-tab="recon" data-i18n="tab_recon">Worklist Reconciliation</button>
+    <button class="tab-btn" data-tab="tour" data-i18n="tab_tour">Guided Tour</button>
+    <button class="tab-btn" data-tab="log" data-i18n="tab_log">Activity Log<span class="count-dot" id="logCountDot">0</span></button>
+  </nav>
+
+  <!-- ======================= TAB 1: DASHBOARD ======================= -->
+  <section class="tabpanel active" id="tab-dashboard">
+    <section class="kpis">
+      <div class="kpi">
+        <div class="label" data-i18n="kpi_tat">TAT breach rate</div>
+        <div class="value" id="kpi-tat">—</div>
+        <div class="delta" id="kpi-tat-d" data-i18n="kpi_tat_d">↓ target ≥60% reduction vs. baseline</div>
+      </div>
+      <div class="kpi">
+        <div class="label" data-i18n="kpi_recollect">Recollection rate</div>
+        <div class="value" id="kpi-recollect">—</div>
+        <div class="delta" id="kpi-recollect-d" data-i18n="kpi_recollect_d">↓ target ≥50% reduction vs. baseline</div>
+      </div>
+      <div class="kpi">
+        <div class="label" data-i18n="kpi_flagged">Flagged today</div>
+        <div class="value" id="kpi-flagged">—</div>
+        <div class="delta warn" id="kpi-flagged-d"></div>
+      </div>
+      <div class="kpi">
+        <div class="label" data-i18n="kpi_custody">Custody doc. completeness</div>
+        <div class="value" id="kpi-custody">—</div>
+        <div class="delta" id="kpi-custody-d" data-i18n="kpi_custody_d">target ≥98% within 12 months</div>
+      </div>
+    </section>
+
+    <section class="manifest">
+      <h2 data-i18n="manifest_title">Chain-of-custody manifest — selected shipment</h2>
+      <div class="track">
+        <div class="rail"></div>
+        <div class="rail-fill" id="rail-fill"></div>
+        <div class="steps" id="steps"></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2 data-i18n="queue_title">Flagged shipments</h2>
+        <ul class="queue-list" id="queue"></ul>
+      </div>
+      <div class="panel">
+        <h2 data-i18n="explain_title">Explainability — why this was flagged</h2>
+        <div class="detail-body" id="detail"></div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2 data-i18n="heatmap_title">Branch risk heat map — likelihood × impact (demo)</h2>
+      <div class="heat-wrap"><div class="heat-grid" id="heatgrid"></div></div>
+    </section>
+  </section>
+
+  <!-- ======================= TAB 2: RECONCILIATION ======================= -->
+  <section class="tabpanel" id="tab-recon">
+    <p class="recon-intro" data-i18n="recon_intro">
+      Paste today's branch collection worklist on the left and the central lab receiving worklist on the right.
+      The comparison runs live as you type. This is decision-support only: a supervisor should verify every
+      flagged case before acting on it.
+    </p>
+
+    <div class="recon-grid">
+      <div class="paste-box">
+        <h3><span data-i18n="branch_worklist_title">Branch worklist (collection)</span> <button class="btn small ghost" id="loadBranchDemo" data-i18n="load_example">Load example</button></h3>
+        <textarea id="branchInput" data-i18n-ph="branch_ph" placeholder="One sample per line, e.g.:&#10;AL-20418, Collected, 07:40"></textarea>
+        <div class="paste-hint" data-i18n="format_hint">Format: Sample ID, Status, Time (status/time optional)</div>
+      </div>
+      <div class="paste-box">
+        <h3><span data-i18n="lab_worklist_title">Central lab worklist (receiving)</span> <button class="btn small ghost" id="loadLabDemo" data-i18n="load_example">Load example</button></h3>
+        <textarea id="labInput" data-i18n-ph="lab_ph" placeholder="One sample per line, e.g.:&#10;AL-20418, Pre-Analytical, 09:05"></textarea>
+        <div class="paste-hint" data-i18n="format_hint">Format: Sample ID, Status, Time (status/time optional)</div>
+      </div>
+    </div>
+
+    <div class="recon-summary">
+      <div class="kpi">
+        <div class="label" data-i18n="rc_total_branch">Branch samples</div>
+        <div class="value" id="rc-total-branch">0</div>
+      </div>
+      <div class="kpi">
+        <div class="label" data-i18n="rc_matched">Matched at lab</div>
+        <div class="value" id="rc-matched">0</div>
+        <div class="delta" id="rc-matched-d"></div>
+      </div>
+      <div class="kpi alert" id="rc-missing-card">
+        <div class="label" data-i18n="rc_missing">Missing at lab</div>
+        <div class="value" id="rc-missing">0</div>
+        <div class="delta bad" id="rc-missing-d" data-i18n="rc_missing_d">investigate immediately</div>
+      </div>
+      <div class="kpi">
+        <div class="label" data-i18n="rc_other">Unexpected / mismatched</div>
+        <div class="value" id="rc-other">0</div>
+        <div class="delta warn" id="rc-other-d"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="recon-controls">
+        <button class="filter-btn active" data-filter="all" data-i18n="filter_all">All</button>
+        <button class="filter-btn" data-filter="missing" data-i18n="filter_missing">Missing at lab</button>
+        <button class="filter-btn" data-filter="unexpected" data-i18n="filter_unexpected">Unexpected at lab</button>
+        <button class="filter-btn" data-filter="mismatch" data-i18n="filter_mismatch">Status mismatch</button>
+        <button class="filter-btn" data-filter="matched" data-i18n="filter_matched">Matched</button>
+        <div class="recon-live"><span class="live-dot"></span><span id="rc-timestamp"></span></div>
+      </div>
+      <div id="rc-table-wrap"></div>
+    </div>
+
+    <p class="signoff-note" style="margin-top:12px;" data-i18n="recon_footnote">
+      This reconciliation view implements the custody-deviation detection function described in the AI Strategy
+      &amp; Implementation Roadmap. All results here are computed instantly in your browser from the text you
+      paste — nothing is uploaded or stored.
+    </p>
+  </section>
+
+  <!-- ======================= TAB 3: GUIDED TOUR ======================= -->
+  <section class="tabpanel" id="tab-tour">
+    <div class="panel">
+      <div class="tour-hero">
+        <p data-i18n="tour_intro">This is a short walkthrough of the two working areas in this demo. Nothing here is connected to real Alfa Lab systems — it's a prototype to demonstrate how the Sample Handover Intelligence Assistant would work.</p>
+      </div>
+      <div class="tour-grid">
+        <div class="tour-col">
+          <h3><span data-i18n="tour_dash_title">🔍 Risk Dashboard</span></h3>
+          <div class="tour-step"><div class="tour-num">1</div><div class="tour-step-body"><b data-i18n="tour_d1_t">Check the KPI cards</b><span data-i18n="tour_d1_b">See TAT breach rate, recollection rate, today's flagged count, and custody documentation completeness at a glance.</span></div></div>
+          <div class="tour-step"><div class="tour-num">2</div><div class="tour-step-body"><b data-i18n="tour_d2_t">Click a flagged shipment</b><span data-i18n="tour_d2_b">Select any row in the Flagged Shipments list on the left to load its details on the right.</span></div></div>
+          <div class="tour-step"><div class="tour-num">3</div><div class="tour-step-body"><b data-i18n="tour_d3_t">Read the SHAP explanation</b><span data-i18n="tour_d3_b">The bars show exactly why the model flagged this shipment — temperature trend, distance, courier history, and so on.</span></div></div>
+          <div class="tour-step"><div class="tour-num">4</div><div class="tour-step-body"><b data-i18n="tour_d4_t">Check the manifest track</b><span data-i18n="tour_d4_b">See where the selected shipment currently sits in the 8-step handover workflow, with AI touchpoints marked.</span></div></div>
+          <div class="tour-step"><div class="tour-num">5</div><div class="tour-step-body"><b data-i18n="tour_d5_t">Approve or override</b><span data-i18n="tour_d5_b">Every flag requires a human decision — approve it or dismiss it. Nothing happens automatically.</span></div></div>
+          <button class="btn primary small tour-jump" data-jump="dashboard" data-i18n="tour_jump_dash">Go to Risk Dashboard →</button>
+        </div>
+        <div class="tour-col">
+          <h3><span data-i18n="tour_recon_title">🔁 Worklist Reconciliation</span></h3>
+          <div class="tour-step"><div class="tour-num">1</div><div class="tour-step-body"><b data-i18n="tour_r1_t">Paste the branch worklist</b><span data-i18n="tour_r1_b">Or click "Load example" to see it work instantly with sample data.</span></div></div>
+          <div class="tour-step"><div class="tour-num">2</div><div class="tour-step-body"><b data-i18n="tour_r2_t">Paste the central lab worklist</b><span data-i18n="tour_r2_b">Same format: one sample per line. The comparison updates live as you type.</span></div></div>
+          <div class="tour-step"><div class="tour-num">3</div><div class="tour-step-body"><b data-i18n="tour_r3_t">Read the summary cards</b><span data-i18n="tour_r3_b">Matched, missing-at-lab, and unexpected/mismatched counts update instantly.</span></div></div>
+          <div class="tour-step"><div class="tour-num">4</div><div class="tour-step-body"><b data-i18n="tour_r4_t">Use the filters</b><span data-i18n="tour_r4_b">Click "Missing at lab" to jump straight to the samples that need investigating first.</span></div></div>
+          <div class="tour-step"><div class="tour-num">5</div><div class="tour-step-body"><b data-i18n="tour_r5_t">Investigate before acting</b><span data-i18n="tour_r5_b">A flagged mismatch here means "check this," not "something is definitely wrong."</span></div></div>
+          <button class="btn primary small tour-jump" data-jump="recon" data-i18n="tour_jump_recon">Go to Worklist Reconciliation →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= TAB 4: ACTIVITY LOG ======================= -->
+  <section class="tabpanel" id="tab-log">
+    <div class="panel">
+      <div class="log-controls">
+        <span data-i18n="log_title" style="font-family:var(--mono); font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-soft);">Session activity log</span>
+        <button class="btn small ghost" id="clearLogBtn" data-i18n="log_clear">Clear log</button>
+      </div>
+      <p class="log-note" data-i18n="log_note">This log lives only in your browser for the current session — it is not uploaded, saved to a server, or visible to anyone else, and it resets when you reload the page.</p>
+      <ul class="log-list" id="logList"></ul>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span class="mono" data-i18n="footer_left">Sample Handover Intelligence Assistant — prototype interface</span>
+    <span data-i18n="footer_right">All data on this page is illustrative demo data, not real Alfa Lab records</span>
+  </footer>
+
+</div>
+
+<script>
+  // =========================================================
+  // Translations
+  // =========================================================
+  const TRANSLATIONS = {
+    en: {
+      brand_eyebrow: "ALFA LAB · SAMPLE HANDOVER INTELLIGENCE",
+      brand_title: "Handover Risk & Custody Reconciliation",
+      brand_sub: "Branch 014 — Giza Corridor · Decision-support demo, human sign-off required",
+      badge_shadow: "Shadow mode — demo data",
+      shift_label: "Shift: 06:00–14:00 · Supervisor: A. Rahman",
+      user_ph: "Your name (for activity log)",
+      tab_dashboard: "Risk Dashboard", tab_recon: "Worklist Reconciliation", tab_tour: "Guided Tour", tab_log: "Activity Log",
+      kpi_tat: "TAT breach rate", kpi_tat_d: "↓ target ≥60% reduction vs. baseline",
+      kpi_recollect: "Recollection rate", kpi_recollect_d: "↓ target ≥50% reduction vs. baseline",
+      kpi_flagged: "Flagged today", kpi_flagged_d: (n)=> n + " high-risk, pending review",
+      kpi_custody: "Custody doc. completeness", kpi_custody_d: "target ≥98% within 12 months",
+      manifest_title: "Chain-of-custody manifest — selected shipment",
+      queue_title: "Flagged shipments",
+      explain_title: "Explainability — why this was flagged",
+      heatmap_title: "Branch risk heat map — likelihood × impact (demo)",
+      shap_contrib: "Contribution to risk score (SHAP)",
+      btn_approve: "Approve flag", btn_override: "Override / dismiss",
+      signoff_note: "Decision-support only — a supervisor must review and sign off before any action is taken on this shipment.",
+      recon_intro: "Paste today's branch collection worklist on the left and the central lab receiving worklist on the right. The comparison runs live as you type. This is decision-support only: a supervisor should verify every flagged case before acting on it.",
+      branch_worklist_title: "Branch worklist (collection)",
+      lab_worklist_title: "Central lab worklist (receiving)",
+      load_example: "Load example",
+      format_hint: "Format: Sample ID, Status, Time (status/time optional)",
+      branch_ph: "One sample per line, e.g.:\nAL-20418, Collected, 07:40",
+      lab_ph: "One sample per line, e.g.:\nAL-20418, Pre-Analytical, 09:05",
+      rc_total_branch: "Branch samples", rc_matched: "Matched at lab",
+      rc_matched_d: (pct)=> pct + "% of branch samples",
+      rc_missing: "Missing at lab", rc_missing_d: "investigate immediately",
+      rc_other: "Unexpected / mismatched",
+      rc_other_d: (u,m)=> u + " unexpected, " + m + " status mismatch",
+      filter_all: "All", filter_missing: "Missing at lab", filter_unexpected: "Unexpected at lab",
+      filter_mismatch: "Status mismatch", filter_matched: "Matched",
+      last_compared: (t)=> "last compared " + t,
+      th_sample: "Sample ID", th_branch_status: "Branch status", th_branch_time: "Branch time",
+      th_lab_status: "Central lab status", th_lab_time: "Lab time", th_result: "Result",
+      result_matched: "Matched", result_missing: "Missing at lab", result_unexpected: "Unexpected at lab", result_mismatch: "Status mismatch",
+      empty_no_data: "Paste or load both worklists above to see the comparison.",
+      empty_no_filter: "No rows match this filter.",
+      recon_footnote: "This reconciliation view implements the custody-deviation detection function described in the AI Strategy & Implementation Roadmap. All results here are computed instantly in your browser from the text you paste — nothing is uploaded or stored.",
+      tour_intro: "This is a short walkthrough of the two working areas in this demo. Nothing here is connected to real Alfa Lab systems — it's a prototype to demonstrate how the Sample Handover Intelligence Assistant would work.",
+      tour_dash_title: "🔍 Risk Dashboard",
+      tour_d1_t: "Check the KPI cards", tour_d1_b: "See TAT breach rate, recollection rate, today's flagged count, and custody documentation completeness at a glance.",
+      tour_d2_t: "Click a flagged shipment", tour_d2_b: "Select any row in the Flagged Shipments list on the left to load its details on the right.",
+      tour_d3_t: "Read the SHAP explanation", tour_d3_b: "The bars show exactly why the model flagged this shipment — temperature trend, distance, courier history, and so on.",
+      tour_d4_t: "Check the manifest track", tour_d4_b: "See where the selected shipment currently sits in the 8-step handover workflow, with AI touchpoints marked.",
+      tour_d5_t: "Approve or override", tour_d5_b: "Every flag requires a human decision — approve it or dismiss it. Nothing happens automatically.",
+      tour_jump_dash: "Go to Risk Dashboard →",
+      tour_recon_title: "🔁 Worklist Reconciliation",
+      tour_r1_t: "Paste the branch worklist", tour_r1_b: "Or click \"Load example\" to see it work instantly with sample data.",
+      tour_r2_t: "Paste the central lab worklist", tour_r2_b: "Same format: one sample per line. The comparison updates live as you type.",
+      tour_r3_t: "Read the summary cards", tour_r3_b: "Matched, missing-at-lab, and unexpected/mismatched counts update instantly.",
+      tour_r4_t: "Use the filters", tour_r4_b: "Click \"Missing at lab\" to jump straight to the samples that need investigating first.",
+      tour_r5_t: "Investigate before acting", tour_r5_b: "A flagged mismatch here means \"check this,\" not \"something is definitely wrong.\"",
+      tour_jump_recon: "Go to Worklist Reconciliation →",
+      log_title: "Session activity log", log_clear: "Clear log",
+      log_note: "This log lives only in your browser for the current session — it is not uploaded, saved to a server, or visible to anyone else, and it resets when you reload the page.",
+      log_empty: "No activity yet — actions you take in this demo will appear here.",
+      footer_left: "Sample Handover Intelligence Assistant — prototype interface",
+      footer_right: "All data on this page is illustrative demo data, not real Alfa Lab records",
+      guest: "Guest",
+      install_btn: "⭳ Install App",
+      install_toast: "App installed — you can now launch it from your desktop or Start menu.",
+    },
+    ar: {
+      brand_eyebrow: "ألفا لاب · نظام تسليم العينات الذكي",
+      brand_title: "مخاطر التسليم ومطابقة سلسلة الحفظ",
+      brand_sub: "الفرع 014 — ممر الجيزة · عرض تجريبي لدعم القرار، يتطلب اعتماد المشرف",
+      badge_shadow: "الوضع التجريبي — بيانات تجريبية",
+      shift_label: "الوردية: 06:00–14:00 · المشرف: أ. رحمن",
+      user_ph: "اسمك (لسجل النشاط)",
+      tab_dashboard: "لوحة المخاطر", tab_recon: "مطابقة قوائم العمل", tab_tour: "جولة إرشادية", tab_log: "سجل النشاط",
+      kpi_tat: "معدل تجاوز زمن الاستجابة", kpi_tat_d: "↓ الهدف: خفض ≥٦٠٪ عن خط الأساس",
+      kpi_recollect: "معدل إعادة السحب", kpi_recollect_d: "↓ الهدف: خفض ≥٥٠٪ عن خط الأساس",
+      kpi_flagged: "المعلَّم اليوم", kpi_flagged_d: (n)=> n + " عالي الخطورة، بانتظار المراجعة",
+      kpi_custody: "اكتمال مستندات الحفظ", kpi_custody_d: "الهدف: ≥٩٨٪ خلال ١٢ شهرًا",
+      manifest_title: "بيان سلسلة الحفظ — الشحنة المحددة",
+      queue_title: "الشحنات المعلّمة",
+      explain_title: "التفسير — سبب التعليم",
+      heatmap_title: "خريطة حرارة مخاطر الفروع — الاحتمالية × الأثر (تجريبي)",
+      shap_contrib: "المساهمة في درجة الخطورة (SHAP)",
+      btn_approve: "اعتماد التعليم", btn_override: "تجاوز / إلغاء",
+      signoff_note: "دعم القرار فقط — يجب أن يراجع المشرف ويعتمد قبل اتخاذ أي إجراء بشأن هذه الشحنة.",
+      recon_intro: "الصق قائمة عمل تحصيل الفرع لهذا اليوم على اليمين، وقائمة عمل استلام المعمل المركزي على اليسار. تعمل المقارنة مباشرة أثناء الكتابة. هذا دعم قرار فقط: يجب أن يتحقق المشرف من كل حالة معلّمة قبل التصرف بشأنها.",
+      branch_worklist_title: "قائمة عمل الفرع (التحصيل)",
+      lab_worklist_title: "قائمة عمل المعمل المركزي (الاستلام)",
+      load_example: "تحميل مثال",
+      format_hint: "الصيغة: رقم العينة، الحالة، الوقت (الحالة والوقت اختياريان)",
+      branch_ph: "عينة واحدة في كل سطر، مثال:\nAL-20418, Collected, 07:40",
+      lab_ph: "عينة واحدة في كل سطر، مثال:\nAL-20418, Pre-Analytical, 09:05",
+      rc_total_branch: "عينات الفرع", rc_matched: "مطابقة في المعمل",
+      rc_matched_d: (pct)=> pct + "٪ من عينات الفرع",
+      rc_missing: "مفقودة في المعمل", rc_missing_d: "يتطلب تحقيقًا فوريًا",
+      rc_other: "غير متوقعة / غير متطابقة",
+      rc_other_d: (u,m)=> u + " غير متوقعة، " + m + " عدم تطابق حالة",
+      filter_all: "الكل", filter_missing: "مفقودة في المعمل", filter_unexpected: "غير متوقعة في المعمل",
+      filter_mismatch: "عدم تطابق الحالة", filter_matched: "مطابقة",
+      last_compared: (t)=> "آخر مقارنة " + t,
+      th_sample: "رقم العينة", th_branch_status: "حالة الفرع", th_branch_time: "وقت الفرع",
+      th_lab_status: "حالة المعمل المركزي", th_lab_time: "وقت المعمل", th_result: "النتيجة",
+      result_matched: "مطابقة", result_missing: "مفقودة في المعمل", result_unexpected: "غير متوقعة في المعمل", result_mismatch: "عدم تطابق الحالة",
+      empty_no_data: "الصق أو حمّل كلتا قائمتي العمل أعلاه لعرض المقارنة.",
+      empty_no_filter: "لا توجد صفوف مطابقة لهذا الفلتر.",
+      recon_footnote: "تنفّذ شاشة المطابقة هذه وظيفة اكتشاف انحراف سلسلة الحفظ الموضحة في وثيقة استراتيجية وخطة تنفيذ الذكاء الاصطناعي. تُحسب كل النتائج هنا فورًا داخل متصفحك من النص الذي تلصقه — لا يُرفع أو يُخزَّن شيء.",
+      tour_intro: "هذه جولة قصيرة في منطقتي العمل الرئيسيتين بهذا العرض التجريبي. لا يتصل شيء هنا بأنظمة ألفا لاب الحقيقية — إنه نموذج أولي لتوضيح كيفية عمل مساعد ذكاء تسليم العينات.",
+      tour_dash_title: "🔍 لوحة المخاطر",
+      tour_d1_t: "راجع بطاقات المؤشرات", tour_d1_b: "اطّلع على معدل تجاوز الوقت، ومعدل إعادة السحب، وعدد المعلّمة اليوم، واكتمال مستندات الحفظ دفعة واحدة.",
+      tour_d2_t: "اضغط على شحنة معلّمة", tour_d2_b: "اختر أي صف في قائمة الشحنات المعلّمة على اليسار لعرض تفاصيلها على اليمين.",
+      tour_d3_t: "اقرأ تفسير SHAP", tour_d3_b: "توضح الأشرطة سبب تعليم النموذج لهذه الشحنة بالتحديد — اتجاه الحرارة، المسافة، سجل المندوب، وغيرها.",
+      tour_d4_t: "راجع بيان سلسلة الحفظ", tour_d4_b: "اطّلع على موقع الشحنة المحددة ضمن خطوات التسليم الثماني، مع تحديد نقاط تدخل الذكاء الاصطناعي.",
+      tour_d5_t: "اعتماد أو تجاوز", tour_d5_b: "كل تعليم يتطلب قرارًا بشريًا — اعتماده أو تجاوزه. لا يحدث شيء تلقائيًا.",
+      tour_jump_dash: "الانتقال إلى لوحة المخاطر ←",
+      tour_recon_title: "🔁 مطابقة قوائم العمل",
+      tour_r1_t: "الصق قائمة عمل الفرع", tour_r1_b: "أو اضغط \"تحميل مثال\" لمشاهدتها تعمل فورًا ببيانات تجريبية.",
+      tour_r2_t: "الصق قائمة عمل المعمل المركزي", tour_r2_b: "نفس الصيغة: عينة واحدة في كل سطر. تتحدث المقارنة مباشرة أثناء الكتابة.",
+      tour_r3_t: "راجع بطاقات الملخص", tour_r3_b: "تتحدث أعداد المطابقة والمفقودة وغير المتوقعة/غير المتطابقة فورًا.",
+      tour_r4_t: "استخدم الفلاتر", tour_r4_b: "اضغط \"مفقودة في المعمل\" للانتقال مباشرة إلى العينات التي تحتاج تحقيقًا أولًا.",
+      tour_r5_t: "تحقّق قبل التصرف", tour_r5_b: "التعليم هنا يعني \"تحقّق من هذا\"، وليس \"هناك خطأ مؤكد\".",
+      tour_jump_recon: "الانتقال إلى مطابقة قوائم العمل ←",
+      log_title: "سجل نشاط الجلسة", log_clear: "مسح السجل",
+      log_note: "يوجد هذا السجل داخل متصفحك لهذه الجلسة فقط — لا يُرفع، ولا يُحفظ على خادم، ولا يظهر لأي شخص آخر، ويُعاد تعيينه عند إعادة تحميل الصفحة.",
+      log_empty: "لا يوجد نشاط بعد — ستظهر هنا الإجراءات التي تقوم بها في هذا العرض التجريبي.",
+      footer_left: "مساعد ذكاء تسليم العينات — واجهة نموذج أولي",
+      footer_right: "جميع البيانات في هذه الصفحة بيانات تجريبية توضيحية، وليست سجلات حقيقية لألفا لاب",
+      guest: "زائر",
+      install_btn: "⭳ تثبيت التطبيق",
+      install_toast: "تم تثبيت التطبيق — يمكنك الآن تشغيله من سطح المكتب أو قائمة ابدأ.",
+    }
+  };
+
+  let currentLang = 'en';
+  function t(key, ...args){
+    const val = TRANSLATIONS[currentLang][key];
+    if(typeof val === 'function') return val(...args);
+    return val !== undefined ? val : key;
+  }
+
+  function applyStaticI18n(){
+    document.documentElement.lang = currentLang;
+    document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+    document.querySelectorAll('[data-i18n]').forEach(el=>{
+      const key = el.getAttribute('data-i18n');
+      const val = TRANSLATIONS[currentLang][key];
+      if(typeof val === 'string') el.textContent = val;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+      const key = el.getAttribute('data-i18n-ph');
+      el.setAttribute('placeholder', TRANSLATIONS[currentLang][key]);
+    });
+    // restore the count-dot span inside the log tab button (overwritten by textContent above)
+    const logBtn = document.querySelector('[data-tab="log"]');
+    logBtn.innerHTML = t('tab_log') + '<span class="count-dot" id="logCountDot">' + activityLog.length + '</span>';
+  }
+
+  document.getElementById('langEn').addEventListener('click', ()=> setLang('en'));
+  document.getElementById('langAr').addEventListener('click', ()=> setLang('ar'));
+  function setLang(lang){
+    if(lang === currentLang) return;
+    currentLang = lang;
+    document.getElementById('langEn').classList.toggle('active', lang==='en');
+    document.getElementById('langAr').classList.toggle('active', lang==='ar');
+    applyStaticI18n();
+    renderQueue(currentShipmentId);
+    renderDetail(shipments.find(s=>s.id===currentShipmentId));
+    renderHeat();
+    renderReconTable(currentFilter);
+    renderTour();
+    renderLog();
+    logAction('Switched language to ' + (lang==='ar' ? 'Arabic' : 'English'), 'غيّر اللغة إلى ' + (lang==='ar' ? 'العربية' : 'الإنجليزية'));
+  }
+
+  // =========================================================
+  // User + Activity Log
+  // =========================================================
+  let currentUser = '';
+  let activityLog = [];
+  document.getElementById('userNameInput').addEventListener('change', (e)=>{
+    currentUser = e.target.value.trim();
+    if(currentUser) logAction('Signed in as ' + currentUser, 'سجّل الدخول باسم ' + currentUser);
+  });
+
+  function logAction(enText, arText){
+    activityLog.unshift({ time: new Date(), user: currentUser || t('guest'), en: enText, ar: arText });
+    if(activityLog.length > 200) activityLog.pop();
+    renderLog();
+  }
+
+  function renderLog(){
+    const dot = document.getElementById('logCountDot');
+    if(dot) dot.textContent = activityLog.length;
+    const listEl = document.getElementById('logList');
+    if(!activityLog.length){
+      listEl.innerHTML = `<div class="empty-note">${t('log_empty')}</div>`;
+      return;
+    }
+    listEl.innerHTML = activityLog.map(entry=>{
+      const timeStr = entry.time.toLocaleTimeString();
+      const userDisplay = entry.user || t('guest');
+      const actionText = currentLang === 'ar' ? entry.ar : entry.en;
+      return `<li class="log-item">
+        <span class="log-time">${timeStr}</span>
+        <span class="log-user">${userDisplay}</span>
+        <span class="log-action">${actionText}</span>
+      </li>`;
+    }).join('');
+  }
+
+  document.getElementById('clearLogBtn').addEventListener('click', ()=>{
+    activityLog = [];
+    renderLog();
+  });
+
+  // =========================================================
+  // Tabs
+  // =========================================================
+  const tabNameMap = { dashboard:'Risk Dashboard', recon:'Worklist Reconciliation', tour:'Guided Tour', log:'Activity Log' };
+  const tabNameMapAr = { dashboard:'لوحة المخاطر', recon:'مطابقة قوائم العمل', tour:'جولة إرشادية', log:'سجل النشاط' };
+  function switchTab(tabKey){
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector(`[data-tab="${tabKey}"]`).classList.add('active');
+    document.querySelectorAll('.tabpanel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('tab-' + tabKey).classList.add('active');
+    logAction('Viewed ' + tabNameMap[tabKey], 'شاهد ' + tabNameMapAr[tabKey]);
+  }
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+  });
+  document.querySelectorAll('.tour-jump').forEach(btn=>{
+    btn.addEventListener('click', ()=> switchTab(btn.dataset.jump));
+  });
+
+  function renderTour(){ /* tour content is static markup translated via applyStaticI18n; nothing dynamic to rebuild */ }
+
+  // =========================================================
+  // Dashboard (risk queue + explainability + heat map)
+  // =========================================================
+  const WORKFLOW_EN = ["Collection","Barcode","Packaging","Courier\npickup","Transport","Lab\nreceipt","Verify","Investigate"];
+  const WORKFLOW_AR = ["التحصيل","الباركود","التعبئة","استلام\nالمندوب","النقل","استلام\nالمعمل","التحقق","التحقيق"];
+
+  const FACTOR_LABELS = {
+    "Temperature trend": { en:"Temperature trend", ar:"اتجاه درجة الحرارة" },
+    "Distance": { en:"Distance", ar:"المسافة" },
+    "Courier delay history": { en:"Courier delay history", ar:"سجل تأخير المندوب" },
+    "Traffic conditions": { en:"Traffic conditions", ar:"حالة المرور" },
+    "Packaging quality": { en:"Packaging quality", ar:"جودة التعبئة" },
+  };
+
+  const shipments = [
+    { id:"AL-20418", route:"Branch 014 → Core Lab", score:86, tier:"high", step:4,
+      factors:[{label:"Temperature trend", pct:32},{label:"Distance", pct:21},{label:"Courier delay history", pct:18},{label:"Traffic conditions", pct:15},{label:"Packaging quality", pct:4}]},
+    { id:"AL-20422", route:"Branch 014 → Core Lab", score:63, tier:"med", step:2,
+      factors:[{label:"Courier delay history", pct:29},{label:"Traffic conditions", pct:24},{label:"Distance", pct:20},{label:"Temperature trend", pct:14},{label:"Packaging quality", pct:6}]},
+    { id:"AL-20431", route:"Branch 014 → Core Lab", score:41, tier:"med", step:6,
+      factors:[{label:"Distance", pct:26},{label:"Temperature trend", pct:22},{label:"Traffic conditions", pct:19},{label:"Courier delay history", pct:17},{label:"Packaging quality", pct:9}]},
+    { id:"AL-20437", route:"Branch 014 → Core Lab", score:18, tier:"low", step:7,
+      factors:[{label:"Traffic conditions", pct:24},{label:"Distance", pct:22},{label:"Packaging quality", pct:20},{label:"Temperature trend", pct:18},{label:"Courier delay history", pct:8}]},
+  ];
+
+  const heat = [
+    { row:"High",   cells:[ {t:"",c:"med"}, {t:"R1 R2",c:"med"}, {t:"",c:"high"} ] },
+    { row:"Medium", cells:[ {t:"",c:"low"}, {t:"R3 R4",c:"med"}, {t:"R6 R7",c:"high"} ] },
+    { row:"Low",    cells:[ {t:"R5",c:"low"}, {t:"",c:"low"}, {t:"",c:"med"} ] },
+  ];
+  const heatColor = { low:"var(--risk-low-tint)", med:"var(--risk-med-tint)", high:"var(--risk-high-tint)" };
+  const heatText  = { low:"var(--risk-low)", med:"var(--risk-med)", high:"var(--risk-high)" };
+  const heatRowLabel = { en:{High:"High",Medium:"Medium",Low:"Low"}, ar:{High:"مرتفع",Medium:"متوسط",Low:"منخفض"} };
+
+  document.getElementById('kpi-tat').textContent = "6.4%";
+  document.getElementById('kpi-recollect').textContent = "1.8%";
+  document.getElementById('kpi-flagged').textContent = shipments.length;
+  document.getElementById('kpi-custody').textContent = "96%";
+
+  function refreshFlaggedDelta(){
+    document.getElementById('kpi-flagged-d').textContent = t('kpi_flagged_d', shipments.filter(s=>s.tier==='high').length);
+  }
+
+  let currentShipmentId = shipments[0].id;
+
+  const queueEl = document.getElementById('queue');
+  function renderQueue(activeId){
+    queueEl.innerHTML = "";
+    shipments.forEach(s=>{
+      const li = document.createElement('li');
+      li.className = 'queue-item' + (s.id===activeId ? ' active' : '');
+      li.innerHTML = `
+        <div class="risk-chip ${s.tier}">${s.score}%</div>
+        <div class="qi-main">
+          <div class="qi-id">${s.id}</div>
+          <div class="qi-route">${s.route}</div>
+        </div>
+        <div class="qi-arrow">›</div>`;
+      li.addEventListener('click', ()=> selectShipment(s.id));
+      queueEl.appendChild(li);
+    });
+  }
+
+  const stepsEl = document.getElementById('steps');
+  function renderTrack(current){
+    const WORKFLOW = currentLang === 'ar' ? WORKFLOW_AR : WORKFLOW_EN;
+    stepsEl.innerHTML = "";
+    WORKFLOW.forEach((name, i)=>{
+      const n = i+1;
+      const div = document.createElement('div');
+      let cls = 'step';
+      if(n < current) cls += ' done';
+      if(n === current) cls += ' current';
+      const tagKeyMap = { 4:'PREDICTIVE', 6:'AUTOMATION', 8:'GENERATIVE' };
+      const tagEn = tagKeyMap[n] || '';
+      const tagAr = { PREDICTIVE:'تنبؤي', AUTOMATION:'أتمتة', GENERATIVE:'توليدي' }[tagEn] || '';
+      const tag = currentLang === 'ar' ? tagAr : tagEn;
+      if(tag) cls += ' tagged';
+      div.className = cls;
+      div.innerHTML = `
+        <div class="dot"></div>
+        <div class="num">${(currentLang==='ar'?'خطوة ':'STEP ')}${String(n).padStart(2,'0')}</div>
+        <div class="name">${name}</div>
+        <div class="tag">${tag}</div>`;
+      stepsEl.appendChild(div);
+    });
+    const pct = ((current-1)/(WORKFLOW.length-1))*100;
+    document.getElementById('rail-fill').style.width = pct + "%";
+  }
+
+  const detailEl = document.getElementById('detail');
+  function renderDetail(s){
+    if(!s) return;
+    detailEl.innerHTML = `
+      <div class="detail-head">
+        <div>
+          <div class="detail-id">${s.id}</div>
+          <div class="detail-route">${s.route}</div>
+        </div>
+        <div class="score-badge ${s.tier}">${s.score}%</div>
+      </div>
+      <div class="shap-title">${t('shap_contrib')}</div>
+      <div id="shap-rows"></div>
+      <div class="actions">
+        <button class="btn primary" id="btnApprove">${t('btn_approve')}</button>
+        <button class="btn ghost" id="btnOverride">${t('btn_override')}</button>
+      </div>
+      <div class="signoff-note">${t('signoff_note')}</div>
+    `;
+    const rowsEl = detailEl.querySelector('#shap-rows');
+    s.factors.forEach(f=>{
+      const lbl = FACTOR_LABELS[f.label] ? FACTOR_LABELS[f.label][currentLang] : f.label;
+      const row = document.createElement('div');
+      row.className = 'shap-row';
+      row.innerHTML = `
+        <div class="shap-label">${lbl}</div>
+        <div class="shap-bar-track"><div class="shap-bar-fill" style="width:${f.pct*2.4}%"></div></div>
+        <div class="shap-pct">+${f.pct}%</div>`;
+      rowsEl.appendChild(row);
+    });
+    renderTrack(s.step);
+    document.getElementById('btnApprove').addEventListener('click', ()=>{
+      logAction('Approved flag for ' + s.id, 'اعتمد التعليم للشحنة ' + s.id);
+    });
+    document.getElementById('btnOverride').addEventListener('click', ()=>{
+      logAction('Overrode/dismissed flag for ' + s.id, 'تجاوز/ألغى التعليم للشحنة ' + s.id);
+    });
+  }
+
+  function selectShipment(id){
+    currentShipmentId = id;
+    const s = shipments.find(x=>x.id===id);
+    renderQueue(id);
+    renderDetail(s);
+    logAction('Selected shipment ' + id, 'اختار الشحنة ' + id);
+  }
+
+  const heatEl = document.getElementById('heatgrid');
+  function renderHeat(){
+    heatEl.innerHTML = "";
+    heatEl.appendChild(document.createElement('div'));
+    const impactLabels = currentLang === 'ar' ? ["أثر منخفض","أثر متوسط","أثر مرتفع"] : ["Low impact","Medium impact","High impact"];
+    impactLabels.forEach(l=>{
+      const d = document.createElement('div');
+      d.className = 'heat-col-label';
+      d.textContent = l;
+      heatEl.appendChild(d);
+    });
+    heat.forEach(r=>{
+      const axis = document.createElement('div');
+      axis.className = 'heat-axis';
+      axis.textContent = heatRowLabel[currentLang][r.row];
+      heatEl.appendChild(axis);
+      r.cells.forEach(c=>{
+        const cell = document.createElement('div');
+        cell.className = 'heat-cell';
+        cell.style.background = heatColor[c.c];
+        cell.style.color = heatText[c.c];
+        cell.textContent = c.t;
+        heatEl.appendChild(cell);
+      });
+    });
+  }
+
+  // =========================================================
+  // Worklist Reconciliation (live compare)
+  // =========================================================
+  const branchDemo =
+`AL-20418, Collected, 07:40
+AL-20422, Collected, 07:55
+AL-20431, Collected, 08:10
+AL-20437, Collected, 08:22
+AL-20444, Collected, 08:30
+AL-20450, Collected, 08:41`;
+
+  const labDemo =
+`AL-20418, Pre-Analytical, 09:05
+AL-20422, Pre-Analytical, 09:20
+AL-20431, In Transit, 09:38
+AL-20450, Pre-Analytical, 09:55
+AL-20461, Pre-Analytical, 10:02`;
+
+  document.getElementById('loadBranchDemo').addEventListener('click', (e)=>{
+    e.preventDefault();
+    document.getElementById('branchInput').value = branchDemo;
+    runReconciliation();
+    logAction('Loaded example branch worklist', 'حمّل مثال قائمة عمل الفرع');
+  });
+  document.getElementById('loadLabDemo').addEventListener('click', (e)=>{
+    e.preventDefault();
+    document.getElementById('labInput').value = labDemo;
+    runReconciliation();
+    logAction('Loaded example central lab worklist', 'حمّل مثال قائمة عمل المعمل المركزي');
+  });
+
+  function parseWorklist(text){
+    const map = new Map();
+    text.split("\n").forEach(line=>{
+      const trimmed = line.trim();
+      if(!trimmed) return;
+      if(/^(sample|specimen|id)\b/i.test(trimmed)) return;
+      const parts = trimmed.split(/,|\t/).map(p=>p.trim()).filter(p=>p.length);
+      if(!parts.length) return;
+      const id = parts[0].toUpperCase();
+      const status = parts[1] || "";
+      const time = parts[2] || "";
+      map.set(id, { status, time });
+    });
+    return map;
+  }
+
+  const EXPECTED_LAB_STATUS = /pre-?analytical|received/i;
+
+  function runReconciliation(logIt){
+    const branchMap = parseWorklist(document.getElementById('branchInput').value);
+    const labMap = parseWorklist(document.getElementById('labInput').value);
+
+    const rows = [];
+    branchMap.forEach((bInfo, id)=>{
+      if(labMap.has(id)){
+        const lInfo = labMap.get(id);
+        const statusOk = !lInfo.status || EXPECTED_LAB_STATUS.test(lInfo.status);
+        rows.push({ id, branchStatus: bInfo.status || "—", branchTime: bInfo.time || "—", labStatus: lInfo.status || "—", labTime: lInfo.time || "—", result: statusOk ? "matched" : "mismatch" });
+      } else {
+        rows.push({ id, branchStatus: bInfo.status || "—", branchTime: bInfo.time || "—", labStatus: "—", labTime: "—", result: "missing" });
+      }
+    });
+    labMap.forEach((lInfo, id)=>{
+      if(!branchMap.has(id)){
+        rows.push({ id, branchStatus: "—", branchTime: "—", labStatus: lInfo.status || "—", labTime: lInfo.time || "—", result: "unexpected" });
+      }
+    });
+
+    rows.sort((a,b)=>{
+      const order = { missing:0, unexpected:1, mismatch:2, matched:3 };
+      return order[a.result]-order[b.result] || a.id.localeCompare(b.id);
+    });
+
+    const matched = rows.filter(r=>r.result==='matched').length;
+    const missing = rows.filter(r=>r.result==='missing').length;
+    const unexpected = rows.filter(r=>r.result==='unexpected').length;
+    const mismatch = rows.filter(r=>r.result==='mismatch').length;
+
+    document.getElementById('rc-total-branch').textContent = branchMap.size;
+    document.getElementById('rc-matched').textContent = matched;
+    document.getElementById('rc-matched-d').textContent = branchMap.size ? t('rc_matched_d', Math.round(matched/branchMap.size*100)) : "";
+    document.getElementById('rc-missing').textContent = missing;
+    document.getElementById('rc-other').textContent = unexpected + mismatch;
+    document.getElementById('rc-other-d').textContent = t('rc_other_d', unexpected, mismatch);
+
+    document.getElementById('rc-missing-card').classList.toggle('alert', missing > 0);
+
+    const now = new Date();
+    document.getElementById('rc-timestamp').textContent = t('last_compared', now.toLocaleTimeString());
+
+    window._reconRows = rows;
+    renderReconTable(currentFilter);
+
+    if(logIt !== false && (branchMap.size || labMap.size)){
+      logAction(
+        `Ran reconciliation: ${matched} matched, ${missing} missing, ${unexpected + mismatch} unexpected/mismatched`,
+        `نفّذ مطابقة: ${matched} مطابقة، ${missing} مفقودة، ${unexpected + mismatch} غير متوقعة/غير متطابقة`
+      );
+    }
+  }
+
+  let currentFilter = 'all';
+  function renderReconTable(filter){
+    currentFilter = filter;
+    const rows = window._reconRows || [];
+    const filtered = filter === 'all' ? rows : rows.filter(r=>r.result===filter);
+    const wrap = document.getElementById('rc-table-wrap');
+
+    if(!rows.length){
+      wrap.innerHTML = `<div class="empty-note">${t('empty_no_data')}</div>`;
+      return;
+    }
+    if(!filtered.length){
+      wrap.innerHTML = `<div class="empty-note">${t('empty_no_filter')}</div>`;
+      return;
+    }
+
+    const labelKeyMap = { matched:'result_matched', missing:'result_missing', unexpected:'result_unexpected', mismatch:'result_mismatch' };
+    let html = `<table class="recon-table"><thead><tr>
+      <th>${t('th_sample')}</th><th>${t('th_branch_status')}</th><th>${t('th_branch_time')}</th>
+      <th>${t('th_lab_status')}</th><th>${t('th_lab_time')}</th><th>${t('th_result')}</th>
+    </tr></thead><tbody>`;
+    filtered.forEach(r=>{
+      html += `<tr>
+        <td style="font-family:var(--mono); font-weight:600;">${r.id}</td>
+        <td>${r.branchStatus}</td>
+        <td style="font-family:var(--mono); color:var(--ink-soft);">${r.branchTime}</td>
+        <td>${r.labStatus}</td>
+        <td style="font-family:var(--mono); color:var(--ink-soft);">${r.labTime}</td>
+        <td><span class="status-pill ${r.result}">${t(labelKeyMap[r.result])}</span></td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    wrap.innerHTML = html;
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      renderReconTable(btn.dataset.filter);
+    });
+  });
+
+  let debounceTimer;
+  ['branchInput','labInput'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', ()=>{
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(()=>runReconciliation(true), 400);
+    });
+  });
+
+  // =========================================================
+  // Init
+  // =========================================================
+  applyStaticI18n();
+  refreshFlaggedDelta();
+  renderHeat();
+  selectShipment(shipments[0].id);
+  renderReconTable('all');
+  renderLog();
+  logAction('Opened Sample Handover Intelligence demo', 'فتح عرض ذكاء تسليم العينات التجريبي');
+
+  // =========================================================
+  // PWA: service worker registration + install prompt
+  // =========================================================
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // Registration can fail on file:// or unsupported hosts — the app still works normally without it.
+      });
+    });
+  }
+
+  let deferredInstallPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn.style.display = 'inline-flex';
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      logAction('Installed the app to desktop', 'ثبّت التطبيق على سطح المكتب');
+      installBtn.style.display = 'none';
+    }
+    deferredInstallPrompt = null;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+    deferredInstallPrompt = null;
+  });
+</script>
+</body>
+</html>
